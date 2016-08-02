@@ -888,10 +888,10 @@ flatpickr.init = function (element, instanceConfig) {
 		for (var dayNum = daysInMonth + 1; dayNum <= 42 - firstOfMonth; dayNum++) {
 			var _curDate = new Date(self.currentYear, self.currentMonth + 1, dayNum % daysInMonth, 0, 0, 0, 0, 0),
 			    _dateIsEnabled = isEnabled(_curDate),
-			    _dayElement = createElement("span", _dateIsEnabled ? "nextMonthDay flatpickr-day" : "disabled", dayNum % daysInMonth);
+			    _dayElement = createElement("span", _dateIsEnabled ? "nextMonthDay flatpickr-day" : "disabled flatpickr-day", dayNum % daysInMonth);
 
 			if (self.config.weekNumbers && dayNum % 7 === 1) {
-				weekNumbers.appendChild(createElement("span", "disabled", _curDate.fp_getWeek()));
+				weekNumbers.appendChild(createElement("span", "disabled flatpickr-day", _curDate.fp_getWeek()));
 			}
 
 			if (_dateIsEnabled) {
