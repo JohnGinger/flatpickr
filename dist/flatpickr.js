@@ -837,7 +837,7 @@ flatpickr.init = function (element, instanceConfig) {
 		for (; dayNumber <= prevMonthDays; dayNumber++) {
 			var curDate = new Date(self.currentYear, self.currentMonth - 1, dayNumber, 0, 0, 0, 0, 0),
 			    dateIsEnabled = isEnabled(curDate),
-			    dayElem = createElement("span", dateIsEnabled ? "flatpickr-day prevMonthDay" : "disabled", dayNumber);
+			    dayElem = createElement("span", dateIsEnabled ? "flatpickr-day prevMonthDay" : "disabled flatpickr-day", dayNumber);
 
 			if (dateIsEnabled) {
 				dayElem.tabIndex = 0;
@@ -856,7 +856,7 @@ flatpickr.init = function (element, instanceConfig) {
 
 			dateIsDisabled = !isEnabled(currentDate);
 
-			var dayElement = createElement("span", dateIsDisabled ? "disabled" : "flatpickr-day", dayNumber);
+			var dayElement = createElement("span", dateIsDisabled ? "disabled flatpickr-day" : "flatpickr-day", dayNumber);
 
 			if (!dateIsDisabled) {
 				dayElement.tabIndex = 0;
