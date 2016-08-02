@@ -689,6 +689,13 @@ flatpickr.init = function (element, instanceConfig) {
 			if (!self.selectedDateObj) {
 				self.selectedDateObj = [];
 			}
+
+			if (!Array.isArray(self.selectedDateObj)){
+				var dateToAdd = self.selectedDateObj;
+				self.selectedDateObj = []
+				self.selectedDateObj.push(dateToAdd);
+			}
+
 			var dateExists = self.selectedDateObj.findIndex(function (existingDate) {
 				return equalDates(existingDate, newDate)
 			})
