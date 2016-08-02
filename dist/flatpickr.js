@@ -118,6 +118,7 @@ flatpickr.init = function (element, instanceConfig) {
 	    getDaysinMonth = void 0,
 	    documentClick = void 0,
 	    selectDate = void 0,
+		updateSelectedDateObject = void 0,
 	    getRandomCalendarIdStr = void 0,
 	    bind = void 0,
 	    triggerChange = void 0;
@@ -140,98 +141,98 @@ flatpickr.init = function (element, instanceConfig) {
 
 	self.formats = {
 		// weekday name, short, e.g. Thu
-		D: function D() {
-			return self.l10n.weekdays.shorthand[self.formats.w()];
+		D: function D(date) {
+			return self.l10n.weekdays.shorthand[self.formats.w(date)];
 		},
 
 		// full month name e.g. January
-		F: function F() {
-			return monthToStr(self.formats.n() - 1, false);
+		F: function F(date) {
+			return monthToStr(self.formats.n(date) - 1, false);
 		},
 
 		// hours with leading zero e.g. 03
-		H: function H() {
-			return pad(self.selectedDateObj.getHours());
+		H: function H(date) {
+				return pad(date.getHours());
 		},
 
 		// day (1-30) with ordinal suffix e.g. 1st, 2nd
-		J: function J() {
-			return self.formats.j() + self.l10n.ordinal(self.formats.j());
+		J: function J(date) {
+			return self.formats.j(date) + self.l10n.ordinal(self.formats.j(date));
 		},
 
 		// AM/PM
-		K: function K() {
-			return self.selectedDateObj.getHours() > 11 ? "PM" : "AM";
+		K: function K(date) {
+			return date.getHours() > 11 ? "PM" : "AM";
 		},
 
 		// shorthand month e.g. Jan, Sep, Oct, etc
-		M: function M() {
-			return monthToStr(self.formats.n() - 1, true);
+		M: function M(date) {
+			return monthToStr(self.formats.n(date) - 1, true);
 		},
 
 		// seconds 00-59
-		S: function S() {
-			return pad(self.selectedDateObj.getSeconds());
+		S: function S(date) {
+			return pad(date.getSeconds());
 		},
 
 		// unix timestamp
-		U: function U() {
-			return self.selectedDateObj.getTime() / 1000;
+		U: function U(date) {
+			return date.getTime() / 1000;
 		},
 
 		// full year e.g. 2016
-		Y: function Y() {
-			return self.selectedDateObj.getFullYear();
+		Y: function Y(date) {
+			return date.getFullYear();
 		},
 
 		// day in month, padded (01-30)
-		d: function d() {
-			return pad(self.formats.j());
+		d: function d(date) {
+			return pad(self.formats.j(date));
 		},
 
 		// hour from 1-12 (am/pm)
-		h: function h() {
-			return self.selectedDateObj.getHours() % 12 ? self.selectedDateObj.getHours() % 12 : 12;
+		h: function h(date) {
+			return date.getHours() % 12 ? date.getHours() % 12 : 12;
 		},
 
 		// minutes, padded with leading zero e.g. 09
-		i: function i() {
-			return pad(self.selectedDateObj.getMinutes());
+		i: function i(date) {
+			return pad(date.getMinutes());
 		},
 
 		// day in month (1-30)
-		j: function j() {
-			return self.selectedDateObj.getDate();
+		j: function j(date) {
+			return date.getDate();
 		},
 
 		// weekday name, full, e.g. Thursday
-		l: function l() {
-			return self.l10n.weekdays.longhand[self.formats.w()];
+		l: function l(date) {
+			return self.l10n.weekdays.longhand[self.formats.w(date)];
 		},
 
 		// padded month number (01-12)
-		m: function m() {
-			return pad(self.formats.n());
+		m: function m(date) {
+			return pad(self.formats.n(date));
 		},
 
 		// the month number (1-12)
-		n: function n() {
-			return self.selectedDateObj.getMonth() + 1;
+		n: function n(date) {
+			return date.getMonth() + 1;
 		},
 
 		// seconds 0-59
-		s: function s() {
-			return self.selectedDateObj.getSeconds();
+		s: function s(date) {
+			return date.getSeconds();
 		},
 
 		// number of the day of the week
-		w: function w() {
-			return self.selectedDateObj.getDay();
+		w: function w(date) {
+			return date.getDay();
 		},
 
 		// last two digits of year e.g. 16 for 2016
-		y: function y() {
-			return String(self.formats.Y()).substring(2);
+		y: function y(date) {
+			return String(self.formats.Y(date)).substring(2);
 		}
 	};
 
@@ -286,6 +287,9 @@ flatpickr.init = function (element, instanceConfig) {
 
 		// dateparser that transforms a given string to a date object
 		parseDate: null,
+
+		// select multiple dates
+		multiSelect: false,
 
 		// see https://chmln.github.io/flatpickr/#disable
 		enable: [],
@@ -381,6 +385,11 @@ flatpickr.init = function (element, instanceConfig) {
 				self.defaultConfig.altFormat = "h:i K";
 			}
 		});
+
+		if (self.config.multiSelect && self.config.enableTime){
+			console.log("Warning! - Time is not compatible with multiSelect");
+			self.config.multiSelect = false;
+		}
 	};
 
 	getRandomCalendarIdStr = function getRandomCalendarIdStr() {
@@ -548,19 +557,29 @@ flatpickr.init = function (element, instanceConfig) {
 	};
 
 	self.formatDate = function (dateFormat) {
-		var formattedDate = "";
-		var formatPieces = dateFormat.split("");
 
-		for (var i = 0; i < formatPieces.length; i++) {
-			var c = formatPieces[i];
-			if (self.formats.hasOwnProperty(c) && formatPieces[i - 1] !== "\\") {
-				formattedDate += self.formats[c]();
-			} else if (c !== "\\") {
-				formattedDate += c;
-			}
+		var formatDateWithFormatString = function (date, format) {
+			var formatCharacters = format.split("");
+			return formatCharacters.map(function (character, index) {
+				if (self.formats.hasOwnProperty(character) && formatCharacters[index - 1] !== "\\") {
+					return self.formats[character](date);
+				} else if (character !== "\\") {
+					return character;
+				}
+			}).join("");
+		};
+
+		var dates = [];
+		if (!Array.isArray(self.selectedDateObj)) {
+			dates.push(self.selectedDateObj);
+		} else {
+			dates = self.selectedDateObj;
 		}
 
-		return formattedDate;
+		return dates.map(function (date) {
+			return formatDateWithFormatString(date, dateFormat)
+		}).join(", ");
+
 	};
 
 	monthToStr = function monthToStr(date, shorthand) {
@@ -665,6 +684,27 @@ flatpickr.init = function (element, instanceConfig) {
 		(self.config.noCalendar ? timeContainer : calendar).focus();
 	};
 
+	updateSelectedDateObject = function (newDate) {
+		if (self.config.multiSelect) {
+			if (!self.selectedDateObj) {
+				self.selectedDateObj = [];
+			}
+			var dateExists = self.selectedDateObj.findIndex(function (existingDate) {
+				return equalDates(existingDate, newDate)
+			})
+			if (dateExists != -1){
+				self.selectedDateObj.splice(dateExists, 1);
+			} else {
+				self.selectedDateObj.push(newDate);
+			}
+			self.selectedDateObj.sort(function(date1, date2) {
+				return date1 > date2;
+			})
+		} else {
+			self.selectedDateObj = newDate;
+		}
+	};
+
 	selectDate = function selectDate(e) {
 		e.preventDefault();
 		e.stopPropagation();
@@ -681,14 +721,16 @@ flatpickr.init = function (element, instanceConfig) {
 				changeMonth(+isNextMonthDay - isPrevMonthDay);
 			}
 
-			self.selectedDateObj = new Date(self.currentYear, monthNum, e.target.innerHTML);
+			updateSelectedDateObject(new Date(self.currentYear, monthNum, e.target.innerHTML))
 
 			updateValue(e);
 			buildDays();
 
-			if (!self.config.enableTime) {
+			if (!self.config.enableTime && !self.config.multiSelect) {
 				self.close();
 			}
+
+	
 		}
 	};
 
@@ -823,8 +865,19 @@ flatpickr.init = function (element, instanceConfig) {
 					dayElement.classList.add("today");
 				}
 
-				if (self.selectedDateObj && equalDates(currentDate, self.selectedDateObj)) {
-					dayElement.classList.add("selected");
+				if (self.selectedDateObj){
+					var dates;
+					if (!Array.isArray(self.selectedDateObj)) {
+						dates = [];
+						dates.push(self.selectedDateObj);
+					} else {
+						dates = self.selectedDateObj;
+					}
+					dates.forEach(function (date) {
+						if (equalDates(currentDate, date)) {
+							dayElement.classList.add("selected");
+						}
+					})
 				}
 			}
 
@@ -1121,8 +1174,11 @@ flatpickr.init = function (element, instanceConfig) {
 	};
 
 	self.jumpToDate = function (jumpDate) {
-		jumpDate = uDate(jumpDate || self.selectedDateObj || self.config.defaultDate || self.config.minDate || now);
-
+		var selectedDate = (self.selectedDateObj && Array.isArray(self.selectedDateObj)) ?
+			self.selectedDateObj[0] :
+			self.selectedDateObj;	
+		
+		jumpDate = uDate(jumpDate || selectedDate || self.config.defaultDate || self.config.minDate || now);
 		self.currentYear = jumpDate.getFullYear();
 		self.currentMonth = jumpDate.getMonth();
 		self.redraw();
